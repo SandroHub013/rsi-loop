@@ -86,10 +86,13 @@ Do exactly one iteration per invocation, then perpetuate (or stop).
      run the check (`run the repo's tests / typecheck / build` for the touched
      area). Accept the first candidate that passes. If none passes after a small
      number of tries, re-decompose the step or escalate.
-   - **Unverifiable step** (design/judgment): spawn **`vote_k` independent
-     sub-agents** with deliberately *diverse* framings (see "Make votes
-     independent"), collect their candidate outputs, and accept the **majority**
-     — or, if there's no majority, have a judge agent pick with a stated reason.
+   - **Unverifiable step** (design/judgment): **first gate on consequence** — if
+     the choice is obvious and low‑stakes, just decide it directly (no ensemble);
+     spinning up K agents to ratify a trivial call only burns budget. Otherwise
+     spawn **`vote_k` independent sub-agents** with deliberately *diverse* framings
+     (see "Make votes independent"), collect their candidate outputs, and accept
+     the **majority** — or, if there's no majority, have a judge agent pick with a
+     stated reason.
    - Never build the next step on an unaccepted step.
 
 4. **Compose & gate.** Assemble the accepted steps. Run the **full** quality gate

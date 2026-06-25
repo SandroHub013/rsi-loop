@@ -30,6 +30,13 @@ a check exists. No K-way ensemble needed.
 
 ## Unverifiable steps — multi-agent voting
 
+**Skip the ensemble for obvious, low‑stakes choices** — decide directly. Spinning
+up K agents to ratify a trivial decision just burns budget (observed in trials:
+3 voters unanimously agreed on an obvious call). Reserve the vote for genuinely
+contested or high‑consequence steps (irreversible, security, public API).
+
+When a vote is warranted:
+
 1. Spawn `vote_k` **independent** sub-agents (default 3) with the *same* step but
    **different framings** (see "Independence" below). Each returns a concrete
    candidate plus a one-line rationale.
