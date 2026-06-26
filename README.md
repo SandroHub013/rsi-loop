@@ -31,6 +31,19 @@ commit on a green test suite, and can self-schedule to run perpetually.
 **Start with `rsi-loop`.** Reach for `rsi-maker-loop` when reliability across many
 dependent steps matters more than a single quick change.
 
+## Workflow
+
+<table>
+<tr>
+<td align="center"><b><code>rsi-loop</code></b> — lean</td>
+<td align="center"><b><code>rsi-maker-loop</code></b> — MAKER</td>
+</tr>
+<tr>
+<td valign="top"><img src="docs/rsi-loop.png" alt="rsi-loop workflow" width="430"></td>
+<td valign="top"><img src="docs/rsi-maker-loop.png" alt="rsi-maker-loop workflow" width="430"></td>
+</tr>
+</table>
+
 ## Why
 
 Autonomous coding loops fail over long horizons because errors **accumulate** —
