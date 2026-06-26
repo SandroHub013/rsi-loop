@@ -104,11 +104,14 @@ Do exactly one iteration per invocation, then perpetuate (or stop).
      number of tries, re-decompose the step or escalate.
    - **Unverifiable step** (design/judgment): **first gate on consequence** — if
      the choice is obvious and low‑stakes, just decide it directly (no ensemble);
-     spinning up K agents to ratify a trivial call only burns budget. Otherwise
-     spawn **`vote_k` independent sub-agents** with deliberately *diverse* framings
-     (see "Make votes independent"), collect their candidate outputs, and accept
-     the **majority** — or, if there's no majority, have a judge agent pick with a
-     stated reason.
+     spinning up agents to ratify a trivial call only burns budget. Otherwise run
+     the MAKER vote: sample independent candidates (first at temperature 0, the
+     rest slightly higher, e.g. 0.1) with deliberately *diverse* framings (see
+     "Make votes independent"); **red‑flag** malformed or over‑long candidates and
+     resample; accept by **first‑to‑ahead‑by‑k** — the first candidate ahead by
+     `vote_k` votes (k≈3 suffices). If still undecided after a sensible cap, a
+     judge agent picks with a stated reason. (Faithful to MAKER, arXiv:2511.09030:
+     "first‑to‑ahead‑by‑k" voting + red‑flagging, k_min≈3.)
    - Never build the next step on an unaccepted step.
 
 4. **Compose & gate.** Assemble the accepted steps. Run the **full** quality gate
@@ -155,6 +158,28 @@ K-way redundancy multiplies cost. Spend it where it buys reliability:
 - Reserve `vote_k` ensembles for unverifiable, **high-consequence** steps
   (irreversible changes, security/crypto, public API shape).
 - Keep iterations small (`max_blast_radius`) so a wrong turn is cheap to redo.
+
+## Models (routing by role)
+
+MAKER's whole economics: cheap models + decomposition + voting beat one big
+model. The paper (arXiv:2511.09030) found **small, non‑reasoning models more
+cost‑effective** for decomposed long‑range tasks than reasoning models (their
+runs used gpt‑4.1‑mini; reasoning models' long outputs even hurt via the
+over‑length red‑flag). Route by role, where the host lets you pick per‑agent
+models:
+
+- **Voters / micro‑step workers** → a **cheap, fast model** (e.g. Haiku). This is
+  where the K× cost lives; the *vote* does the error correction, not per‑voter
+  brilliance.
+- **Decomposer + judge** → a **strong model** (e.g. Sonnet/Opus). Decomposition
+  quality and tie‑breaking are the "insight" parts voting can't fix; few calls.
+- **Verifiable steps** → no model vote at all; the test is the judge.
+
+Empirically (a small in‑repo benchmark): **Haiku + this method matched
+Opus‑single‑shot at ~an order of magnitude lower cost** on clear, checkable
+tasks — equal correctness, far cheaper. On *harder/long‑horizon* work the gap
+should widen in MAKER's favor; on trivial tasks a single strong‑model shot is
+fine (don't pay K× for nothing — that's `rsi-loop`).
 
 ## Direction guard (anti-drift)
 

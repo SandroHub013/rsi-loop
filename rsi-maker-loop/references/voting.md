@@ -35,18 +35,26 @@ up K agents to ratify a trivial decision just burns budget (observed in trials:
 3 voters unanimously agreed on an obvious call). Reserve the vote for genuinely
 contested or high‑consequence steps (irreversible, security, public API).
 
-When a vote is warranted:
+When a vote is warranted, use MAKER's scheme (arXiv:2511.09030, "first‑to‑ahead‑by‑k"):
 
-1. Spawn `vote_k` **independent** sub-agents (default 3) with the *same* step but
-   **different framings** (see "Independence" below). Each returns a concrete
-   candidate plus a one-line rationale.
-2. Aggregate:
-   - If a clear **majority** produce the same decision (semantically), take it.
-   - If there's no majority, spawn a **judge** agent: give it the candidates
-     (anonymized, no "agent 1/2/3" ordering bias) and your acceptance criteria;
-     it picks one and states why.
-3. Accept the winner. Record the decision and rationale in the commit/PR so it's
-   auditable.
+1. Sample **independent** candidates for the *same* step with **different framings**
+   (see "Independence" below). First sample at temperature 0, the rest slightly
+   higher (e.g. 0.1). Each returns a concrete candidate + one‑line rationale.
+2. **Red‑flag and resample** any candidate that is **malformed** (fails a quick
+   format/parse check) or **over‑long** (rambling output correlates with errors) —
+   don't let it count as a vote.
+3. Tally semantically‑equal candidates and accept by **first‑to‑ahead‑by‑k**: the
+   first answer that leads by `vote_k` votes (k≈3 is enough for very high
+   reliability) wins. Keep sampling until something is ahead by k.
+4. If a sensible sampling cap is hit with no winner, spawn a **judge** agent: give
+   it the candidates (anonymized, no ordering bias) + the acceptance criteria; it
+   picks one with a stated reason.
+5. Record the decision and rationale in the commit/PR so it's auditable.
+
+> Why "ahead by k" rather than "k total": it adapts effort to difficulty — easy,
+> uncontested steps resolve in ~k samples; only genuinely split steps cost more.
+> Cost grows ~`k · steps`, i.e. log‑linear, which is what makes long horizons
+> affordable.
 
 ### Independence (or the vote is worthless)
 
