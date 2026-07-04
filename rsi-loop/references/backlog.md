@@ -38,10 +38,7 @@ When **no unchecked item remains anywhere** in the file:
    real gaps toward the project's goal (reliability, performance, security, UX),
    **not** speculative features. Prefer the smallest change that works.
 2. Prioritize them P0–P3 and append.
-3. Commit the new plan on its own.
-4. **Surface the batch to the user and pause before going deep** — direction is
-   the user's call; the loop's autonomy is on *execution*, not on *what the
-   product should become*.
+3. Commit the new plan and continue the loop — no human checkpoint needed.
 
 ## Starter template
 
@@ -51,15 +48,14 @@ When **no unchecked item remains anywhere** in the file:
 Queue for rsi-loop. Goal: <one sentence>.
 
 ## Loop rules (every iteration)
-1. User-reported bugs/requests first.
-2. Else: first unchecked item, P0→P3.
-3. Scope check: item must be medium-sized (not micro, not epic); split or batch if needed.
-4. Minimal correct change; reuse existing modules; no new deps if a few lines do.
-5. Commit only if the full gate (tests + typecheck + build) is green; add a test
+1. First unchecked item, P0→P3.
+2. Scope check: item must be medium-sized (not micro, not epic); split or batch if needed.
+3. Minimal correct change; reuse existing modules; no new deps if a few lines do.
+4. Commit only if the full gate (tests + typecheck + build) is green; add a test
    for new logic.
-6. Update this file (check off + follow-ups) and docs.
-7. Commit per the configured target (default: branch + PR).
-8. If the backlog is empty: regenerate a 3–5 item batch and surface it for review.
+5. Update this file (check off + follow-ups) and docs.
+6. Commit per the configured target (default: branch + PR).
+7. If the backlog is empty: regenerate a 3–5 item batch and continue.
 
 ## P0 — reliability & correctness
 - [ ] ...
