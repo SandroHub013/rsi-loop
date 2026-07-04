@@ -1,138 +1,86 @@
 <div align="center">
 
-# rsi-loops
+# rsi-loop
 
-**Autonomous, backlog-driven development loops for [Claude Code](https://docs.anthropic.com/en/docs/claude-code).**
+**Autonomous, backlog-driven development loop for [Claude Code](https://docs.anthropic.com/en/docs/claude-code).**
 
-Two skills, one idea: turn a `BACKLOG.md` into shipped, verified changes — one item at a time — and run indefinitely. Pick the cheap loop or the self-correcting one.
+One skill, one idea: turn a `BACKLOG.md` into shipped, verified changes — one
+medium-sized task at a time — and run indefinitely.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 ![Claude Code skill](https://img.shields.io/badge/Claude%20Code-skills-8A63FF)
-![Status: beta](https://img.shields.io/badge/status-beta-orange)
-[![Paper: MAKER](https://img.shields.io/badge/paper-arXiv%3A2511.09030-b31b1b)](https://arxiv.org/abs/2511.09030)
 
 </div>
 
 ---
 
-## The two loops
+## What it is
 
-| | [`rsi-loop`](rsi-loop/) | [`rsi-maker-loop`](rsi-maker-loop/) |
-|---|---|---|
-| **What** | Lean loop: one agent per iteration | Self-correcting loop (MAKER) |
-| **Error correction** | the repo's test/typecheck/build gate | **+ per-step** decomposition & voting |
-| **Cost** | low (single model) | higher (voting ensemble) |
-| **Best for** | clear, checkable work with a strong model | long-horizon / weak models / uncheckable, high-consequence steps |
-| **Default model** | a strong model (Opus / Sonnet) | cheap voters (Haiku) + a strong judge |
+`rsi-loop` is a lean autonomous loop that advances a codebase one **medium task
+per iteration**. Each iteration picks the highest-priority unchecked item from
+`BACKLOG.md`, implements the minimal correct change, runs the repo's full
+quality gate (tests + typecheck + build), and commits. It can self-schedule to
+run perpetually, regenerating the backlog when empty.
 
-Both are driven by the same `BACKLOG.md`, regenerate it when empty, gate every
-commit on a green test suite, and can self-schedule to run perpetually.
-
-**Start with `rsi-loop`.** Reach for `rsi-maker-loop` when reliability across many
-dependent steps matters more than a single quick change.
+**Medium tasks are the sweet spot:** self-contained features, refactors, or
+bugfixes — typically 2–5 files, one logical change, completable in a single
+iteration. Large enough to feel like real progress, small enough that a single
+model handles them reliably without micro-step voting.
 
 ## Workflow
 
-### `rsi-loop` — lean
-
 ![rsi-loop workflow](docs/rsi-loop.png)
-
-### `rsi-maker-loop` — MAKER
-
-![rsi-maker-loop workflow](docs/rsi-maker-loop.png)
 
 ## Why
 
-Autonomous coding loops fail over long horizons because errors **accumulate** —
-each single-agent step has a real error rate, and a few hundred steps in, the
-process derails. A bigger model only moves the cliff.
-
-- **`rsi-loop`** keeps it cheap and simple: a capable model advances the backlog,
-  the repo's own gate is the safety net.
-- **`rsi-maker-loop`** adds **MAKER** ([*Solving a Million-Step LLM Task with Zero
-  Errors*](https://arxiv.org/abs/2511.09030)): decompose work into tiny checkable
-  micro-steps and apply error correction at **every** step — verifiable steps are
-  judged by your tests; unverifiable ones by **first-to-ahead-by-k** voting across
-  independent (deliberately diverse) agents, with malformed/over-long candidates
-  red-flagged and resampled.
-
-The software twist that keeps MAKER affordable: your **tests/typecheck/build are
-the strongest, free "voter."** Multi-agent voting is reserved for the steps a
-machine can't check.
-
-## The economics (why cheap voters win)
-
-MAKER's finding — and a small in-repo benchmark — both point the same way: with
-decomposition + voting, **cheap models match expensive ones at a fraction of the
-cost.**
-
-| Setup | Correctness | Relative cost |
-|---|---|---|
-| `rsi-loop` + Opus (single shot) | 100% | high (Opus tokens) |
-| `rsi-maker-loop` + Haiku (decompose + verify) | 100% | ~an order of magnitude lower |
-
-On *easy* tasks both hit 100% (so MAKER ties, not beats — at much lower cost);
-MAKER's quality edge widens on *harder / long-horizon* work where a single shot
-starts to fail. Route models by role: **cheap voters, strong judge.**
+Autonomous coding loops fail over long horizons because errors **accumulate**.
+`rsi-loop` keeps it simple: a capable model advances the backlog, the repo's
+own gate is the safety net. No multi-agent voting, no micro-step decomposition
+— just steady, gated progress on meaningful tasks.
 
 ## Install
 
-Each skill is a folder. Copy the one(s) you want into your Claude Code skills
-directory so that `SKILL.md` sits at `…/skills/<name>/SKILL.md`:
+Copy the skill folder so that `SKILL.md` sits at `…/skills/rsi-loop/SKILL.md`:
 
 ```bash
 git clone https://github.com/SandroHub013/rsi-maker-loop /tmp/rsi-loops
-cp -r /tmp/rsi-loops/rsi-loop        ~/.claude/skills/rsi-loop
-cp -r /tmp/rsi-loops/rsi-maker-loop  ~/.claude/skills/rsi-maker-loop
+cp -r /tmp/rsi-loops/rsi-loop  ~/.claude/skills/rsi-loop
 ```
 
 Then ask in natural language — "start the RSI loop on this repo", "run an
-autonomous MAKER loop", "keep working through my backlog".
+autonomous loop", "keep working through my backlog".
 
 ## Configure
 
-Optional per-repo config (`.rsi-loop.json` / `.rsi-maker-loop.json`):
+Optional per-repo config (`.rsi-loop.json`):
 
 ```json
-{ "commit_target": "branch-pr", "perpetual": true, "vote_k": 3, "max_blast_radius": "small" }
+{ "commit_target": "branch-pr", "perpetual": true, "max_blast_radius": "medium" }
 ```
 
-`commit_target`: `"branch-pr"` (open PRs — recommended) or `"main"`. `vote_k`
-(maker only): independent candidates per unverifiable step.
+`commit_target`: `"branch-pr"` (open PRs — recommended) or `"main"`.
 
 ## Honest boundaries
 
-- **Execution, not direction.** These loops bound *execution* errors, not whether
-  the work is the *right* work. They pause for a human checkpoint when regenerating
-  the backlog; user bugs/requests always take priority.
-- **`rsi-loop` has only the gate** as a safety net — a mistake the tests miss can
-  land; prefer `branch-pr`.
-- **Voting needs independent voters** — same model + same prompt = same blind spot;
-  diversify framings/models, and always keep a *minimality* voter to fight bloat.
-- **Decomposition has limits** — great for long, mechanical, checkable work; weak
-  for novel architecture that needs holistic design.
+- **The gate is the only safety net.** This loop has no redundancy/voting, so a
+  mistake that the tests don't catch can land. Keep the suite meaningful, and
+  prefer `branch-pr` so a human sees changes.
+- **Execution, not direction.** It advances the backlog reliably but doesn't
+  decide *what* the product should become — it pauses for a human checkpoint when
+  regenerating the backlog; user bugs/requests always take priority.
+- **Medium tasks need good judgment.** Unlike micro-steps, each iteration makes
+  multiple decisions — the model's ability to make sound trade-offs matters.
 
 ## Layout
 
 ```
 .
-├─ rsi-loop/            # lean loop
+├─ rsi-loop/            # the loop
 │  ├─ SKILL.md
 │  └─ references/backlog.md
-├─ rsi-maker-loop/      # MAKER self-correcting loop
-│  ├─ SKILL.md
-│  └─ references/{voting.md, backlog.md}
 ├─ README.md
 └─ LICENSE
 ```
-
-## Credits
-
-Error-correction approach inspired by **MAKER** (Meyerson et al.,
-[arXiv:2511.09030](https://arxiv.org/abs/2511.09030)) — *massively decomposed
-agentic processes* ("first-to-ahead-by-k" voting, maximal decomposition,
-red-flagging). This project adapts it to everyday software by using the repo's own
-test/type/build gates as the primary per-step verifier.
 
 ## License
 

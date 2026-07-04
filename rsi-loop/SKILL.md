@@ -1,33 +1,34 @@
 ---
 name: rsi-loop
 description: >-
-  Run a lean autonomous development loop on a codebase, driven by a BACKLOG.md:
-  advance one item per iteration with the repo's own tests/typecheck/build as the
-  gate, commit, and (optionally) self-schedule the next iteration — with NO
-  multi-agent voting, to keep token cost low. Use whenever the user wants a simple
-  self-running dev or maintenance loop: "autonomous loop", "RSI loop", "keep
-  working through my backlog", "perpetual development on a budget", or a single
-  capable model steadily shipping backlog items. For long-horizon work that must
-  not drift or accumulate errors across many dependent steps, for weak/cheap
-  models, or for high-consequence uncheckable decisions, prefer the sibling
-  rsi-maker-loop (which adds MAKER per-step error correction at higher cost).
+  Run an autonomous development loop on a codebase, driven by a BACKLOG.md:
+  advance one medium-sized task per iteration with the repo's own
+  tests/typecheck/build as the gate, commit, and (optionally) self-schedule the
+  next iteration. Use whenever the user wants a self-running dev or maintenance
+  loop: "autonomous loop", "RSI loop", "keep working through my backlog",
+  "perpetual development". Each iteration handles a complete, meaningful task —
+  not a micro-step — balanced between scope and reliability.
 ---
 
-# RSI Loop (lean)
+# RSI Loop (medium task)
 
-A backlog-driven autonomous loop that advances a project one item at a time and
-can run indefinitely. It is the **economical default**: a single capable model
-does each iteration, and the repo's own quality gate is the safety net. No
-decomposition into voting ensembles — for that, use `rsi-maker-loop`.
+A backlog-driven autonomous loop that advances a project **one medium task at a
+time** and can run indefinitely. Each iteration picks up a self-contained item
+from the backlog, implements the minimal correct change, runs the repo's full
+quality gate, and commits — no micro-decomposition, no multi-agent voting.
 
-## When to use this vs rsi-maker-loop
+## Scope philosophy
 
-- **rsi-loop (this one):** clear, checkable work where a single strong model is
-  reliable; you want low token cost. The gate (tests/typecheck/build) catches
-  mistakes at the end of the iteration.
-- **rsi-maker-loop:** long-horizon chains where errors compound, weak/cheap
-  models, or unverifiable high-consequence decisions — it adds per-step error
-  correction (decomposition + first-to-ahead-by-k voting), at higher cost.
+This loop is configured for **medium tasks** (not micro-steps, not epics):
+
+| Scope | When to use |
+|---|---|
+| **Micro** (single function, one file) | Use when the task is trivially checkable; rsi-loop handles these easily but you're paying overhead per item |
+| **Medium ← you are here** | A self-contained feature, refactor, or bugfix — touches 2–5 files, one logical change, completable in one iteration. The sweet spot for rsi-loop |
+| **Large / epic** | Multi-iteration work that needs decomposition into medium tasks in the backlog |
+
+A good medium task has a clear success criterion, fits in one iteration, but is
+substantial enough that completing it feels like real progress.
 
 ## Setup (first run)
 
@@ -47,11 +48,12 @@ Contract fields (defaults shown):
 - **commit_target** (`"branch-pr"`): branch + PR for review, or `"main"` behind
   the gate. Default `branch-pr` — unattended unreviewed `main` pushes cause damage.
 - **perpetual** (`true`): self-schedule the next iteration when done.
-- **max_blast_radius** (small): how much one iteration may change before it must
-  stop and ask — keeps a wrong turn cheap.
+- **max_blast_radius** (`"medium"`): files/lines a single iteration may touch
+  before it must stop and ask — allows meaningful medium tasks while keeping a
+  wrong turn bounded.
 
 If there is no `BACKLOG.md`, create one (see `references/backlog.md`) by briefly
-interviewing the user about the goal, then seed P0–P3 items.
+interviewing the user about the goal, then seed P0–P3 medium-sized items.
 
 ## The loop (one iteration)
 
@@ -59,29 +61,38 @@ Do exactly one iteration per invocation, then perpetuate (or stop):
 
 1. **Intake.** Read `BACKLOG.md`. User-reported bugs / open issues addressed to
    the loop take priority; otherwise take the first unchecked item (P0 → P3).
-2. **Implement** the **minimal correct** change, reusing existing modules. No
+
+2. **Scope check.** Verify the item is a medium task (not a micro-step, not an
+   epic). If it is too large, decompose it into 2–4 medium items in the backlog
+   and pick the first. If it is a micro-step, batch it with related items until
+   the batch forms a medium task.
+
+3. **Implement** the **minimal correct** change, reusing existing modules. No
    speculative abstractions; no new dependency if a few lines do. Match the
    repo's conventions. Keep it within `max_blast_radius`.
-3. **Gate.** Run the **full** quality gate the repo defines (complete test suite
+
+4. **Gate.** Run the **full** quality gate the repo defines (complete test suite
    + typecheck + build). Add a test for genuinely new logic. Commit **only if
    everything is green** — a red gate means fix or revert, never commit red.
-4. **Record.** Check off the item in `BACKLOG.md`, add follow-ups, update docs.
-5. **Commit** per `commit_target`, with a message naming the item. Don't commit
+
+5. **Record.** Check off the item in `BACKLOG.md`, add follow-ups, update docs.
+
+6. **Commit** per `commit_target`, with a message naming the item. Don't commit
    session/scheduler state or scratch files.
-6. **Regenerate (RSI).** If no unchecked items remain anywhere, generate a small
-   batch (3–5) of high-value, non-speculative items, commit the plan, and
+
+7. **Regenerate (RSI).** If no unchecked items remain anywhere, generate a small
+   batch (3–5) of high-value, non-speculative medium items, commit the plan, and
    **surface it to the user before going deep** — direction is theirs.
-7. **Perpetuate.** If `perpetual`, schedule the next iteration (host loop / a
+
+8. **Perpetuate.** If `perpetual`, schedule the next iteration (host loop / a
    self-paced wakeup) with a prompt that re-enters this skill; else stop.
 
 ## Model
 
-Because there is **no per-step error correction beyond the gate**, the single
-model doing the work should be **capable**: default to a strong model (e.g. Opus,
-or Sonnet for a cheaper but still strong option). On easy, clear tasks a strong
-single shot is both reliable and cheaper than running an ensemble — that is the
-whole reason this lean loop exists. If you find the model repeatedly failing the
-gate on hard steps, that is the signal to switch to `rsi-maker-loop`.
+A single capable model (e.g. Sonnet, Opus) handles the entire iteration. Since
+each task is medium-sized — not a chain of micro-steps — the model has room to
+understand context and produce a coherent change without per-step voting. If the
+model repeatedly fails the gate on medium tasks, reduce scope to smaller items.
 
 ## Honest boundaries
 
@@ -91,8 +102,9 @@ gate on hard steps, that is the signal to switch to `rsi-maker-loop`.
 - **Execution, not direction.** It advances the backlog reliably but doesn't
   decide *what* the product should become — it pauses for a human checkpoint when
   it regenerates the backlog, and user requests always win.
-- **Long horizons drift.** Over very many dependent steps, errors can accumulate
-  (the problem MAKER addresses). For that regime, use `rsi-maker-loop`.
+- **Medium tasks require judgment.** Unlike micro-steps, a medium task involves
+  multiple decisions — the model's ability to make good trade-offs matters more
+  here than in a micro-step setup.
 
 ## References
 
